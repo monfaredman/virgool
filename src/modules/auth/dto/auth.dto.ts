@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AuthType } from '../enums/type.enum';
-import { IsEmail, IsEnum, Length } from 'class-validator';
+import { IsEmail, IsEnum, IsString, Length } from 'class-validator';
 import { AuthMethod } from '../enums/method.enum';
 
 export class AuthDto {
@@ -14,4 +14,10 @@ export class AuthDto {
   @ApiProperty({ enum: AuthMethod })
   @IsEnum(AuthMethod)
   method: AuthMethod;
+}
+export class CheckOtpDto {
+  @ApiProperty()
+  @IsString()
+  @Length(5, 5)
+  code: string;
 }

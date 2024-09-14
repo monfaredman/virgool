@@ -9,6 +9,6 @@ export class UserController {
 
   @Post('/user-existance')
   userExistence(@Body() authDto: AuthDto) {
-    return this.userService.userExistence(authDto)
+    return this.userService.userExistence(authDto);
   }
 }

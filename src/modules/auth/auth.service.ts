@@ -1,8 +1,9 @@
 import {
-  BadGatewayException,
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
+  Scope,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
@@ -21,8 +22,12 @@ import {
 import { OTPEntity } from '../user/entities/otp.entity';
 import { randomInt } from 'crypto';
 import { TokenService } from './tokens.service';
+import { Response, Request } from 'express';
+import { CookieKeys } from 'src/common/enums/cookie.enum';
+import { AuthResponse } from './types/response';
+import { REQUEST } from '@nestjs/core';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
@@ -32,21 +37,22 @@ export class AuthService {
     @InjectRepository(OTPEntity)
     private otpRepository: Repository<OTPEntity>,
     private tokenService: TokenService,
+    @Inject(REQUEST) private request: Request,
   ) {}
 
-  userExistence(authDto: AuthDto) {
+  async userExistence(authDto: AuthDto, res: Response) {
     const { method, type, username } = authDto;
+    let result: AuthResponse;
     switch (type) {
       case AuthType.Login:
-        return this.login(method, username);
-        break;
+        result = await this.login(method, username);
+        return this.sendResponse(res, result);
       case AuthType.Register:
-        return this.register(method, username);
-        break;
+        result = await this.register(method, username);
+        return this.sendResponse(res, result);
 
       default:
         throw new UnauthorizedException('Invalid type');
-        break;
     }
   }
 
@@ -55,12 +61,12 @@ export class AuthService {
     const user: UserEntity = await this.checkExistUser(method, validUsername);
     if (!user) throw new UnauthorizedException(AuthMessage.UserNotFound);
     const otp = await this.createOtpForUser(user.id);
-    // user.otpId = otp.id;
-    // await this.userRepository.save(user);
+    const token = this.tokenService.createOtpToken({ userId: user.id });
+
     return {
       code: otp.code,
       message: PublicMessage.SentOtp,
-      userId: user.id,
+      token,
     };
   }
   async register(method: AuthMethod, username: string) {
@@ -75,10 +81,12 @@ export class AuthService {
     user.username = `m_${user.id}`;
     user = await this.userRepository.save(user);
     const otp = await this.createOtpForUser(user.id);
+    const token = this.tokenService.createOtpToken({ userId: user.id });
+
     return {
       code: otp.code,
       message: PublicMessage.SentOtp,
-      userId: user.id,
+      token,
     };
   }
 
@@ -114,20 +122,14 @@ export class AuthService {
     return user;
   }
 
-  // async sendAndSaveOtp(userId: number) {
-  //   const { mobile } = otpDto;
-  //   let user = await this.userRepository.findOneBy({ mobile });
-  //   if (!user) {
-  //     user = this.userRepository.create({
-  //       mobile,
-  //     });
-  //     user = await this.userRepository.save(user);
-  //   }
-  //   await this.createOtpForUser(user);
-  //   return {
-  //     message: 'otp sent successfully',
-  //   };
-  // }
+  async sendResponse(res: Response, result: AuthResponse) {
+    const { token, code } = result;
+    res.cookie(CookieKeys.OTP, token, {
+      httpOnly: true,
+      expires: new Date(Date.now() + 1000 * 60 * 2),
+    });
+    res.json({ message: PublicMessage.SentOtp, code });
+  }
 
   async createOtpForUser(userId: number) {
     const code = randomInt(10000, 99999).toString();
@@ -156,97 +158,28 @@ export class AuthService {
     //Send [Sms, Email, Notification, ...] OtpCode
   }
 
-  // async checkOtp(otpDto: CheckOtpDto) {
-  //   const { code, mobile } = otpDto;
-  //   const now = new Date();
-  //   const user = await this.userRepository.findOne({
-  //     where: { mobile },
-  //     relations: ['otp'],
-  //   });
-  //   if (!user || !user?.otp) {
-  //     throw new UnauthorizedException('user not found');
-  //   }
-  //   const otp = user?.otp;
-  //   if (otp?.code !== +code) {
-  //     throw new UnauthorizedException('code is not valid');
-  //   }
-  //   if (otpDto.expires_in < now) {
-  //     throw new UnauthorizedException('otp is expired');
-  //   }
-  //   if (!user.mobile_verify) {
-  //     await this.userRepository.update(
-  //       { id: user.id },
-  //       { mobile_verify: true },
-  //     );
-  //   }
-  //   const { accessToken, refreshToken } = this.generateTokenOfUser({
-  //     id: user.id,
-  //     mobile: +mobile,
-  //   });
-  //   return {
-  //     accessToken,
-  //     refreshToken,
-  //     messagage: 'user is verified successfully',
-  //   };
-  // }
+  async checkOtp(code: string) {
+    const token = this.request.cookies?.[CookieKeys.OTP];
+    if (!token) throw new UnauthorizedException(AuthMessage.ExpiresCode);
+    const { userId } = this.tokenService.verifyOtpToken(token);
+    const otp = await this.otpRepository.findOneBy({ userId });
+    if (!otp) throw new UnauthorizedException(AuthMessage.LoginAgain);
+    const now = new Date();
+    if (otp.expiresIn < now)
+      throw new UnauthorizedException(AuthMessage.ExpiresCode);
+    if (otp.code !== +code)
+      throw new UnauthorizedException(AuthMessage.WrongCode);
+    const accessToken = this.tokenService.createAccessToken({ userId });
+    return {
+      message: PublicMessage.LoggedIn,
+      accessToken,
+    };
+  }
 
-  // generateTokenOfUser(payload: TokenPayload) {
-  //   const accessToken = this.jwtService.sign(
-  //     {
-  //       id: payload.id,
-  //       mobile: payload.mobile,
-  //     },
-  //     {
-  //       secret: this.configService.get('Jwt.accessTokenSecret'),
-  //       expiresIn: '30d',
-  //     },
-  //   );
-  //   const refreshToken = this.jwtService.sign(
-  //     {
-  //       id: payload.id,
-  //       mobile: payload.mobile,
-  //     },
-  //     {
-  //       secret: this.configService.get('Jwt.refreshTokenSecret'),
-  //       expiresIn: '1y',
-  //     },
-  //   );
-  //   return { accessToken, refreshToken };
-  // }
-
-  // async validateAccessToken(token: string | boolean) {
-  //   try {
-  //     if (typeof token === 'string') {
-  //       const payload = this.jwtService.verify<TokenPayload>(token, {
-  //         secret: this.configService.get('Jwt.accessTokenSecret'),
-  //       });
-  //       if (typeof payload === 'object' && payload.hasOwnProperty('id')) {
-  //         const user = await this.userRepository.findOneBy({ id: payload.id });
-  //         if (!user) {
-  //           throw new UnauthorizedException('user not found');
-  //         }
-  //         return user;
-  //       }
-  //     }
-  //     throw new UnauthorizedException('invalid token');
-  //   } catch (e) {
-  //     throw new UnauthorizedException('invalid token');
-  //   }
-  // }
-
-  // async hashPasswrod(password: string) {
-  //   const salt = await bcrypt.genSalt(10);
-  //   const hashedPassword = await bcrypt.hash(password, salt);
-  //   return hashedPassword;
-  // }
-
-  // async checkEmailIsExist(email: string) {
-  //   const user = await this.userRepository.findOneBy({ email });
-  //   if (user) throw new ConflictException('Email already exists');
-  // }
-
-  // async checkMobileIsExist(mobile: string) {
-  //   const user = await this.userRepository.findOneBy({ mobile });
-  //   if (user) throw new ConflictException('Mobile already exists');
-  // }
+  async validateAccessToken(token: string) {
+    const { userId } = this.tokenService.verifyAccessToken(token);
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new UnauthorizedException(AuthMessage.LoginAgain);
+    return user;
+  }
 }

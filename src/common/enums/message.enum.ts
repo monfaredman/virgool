@@ -23,7 +23,13 @@ export enum AuthMessage {
   UserNotInternal = 'کاربر داخلی نیست',
   UserNotValidation = 'کاربر اعتبارسنجی نشده است',
   UserNotAuthentication = 'کاربر تأیید هویت نشده است',
+  ExpiresCode = ' کد منقضی شده است',
+  TryAgain = 'لطفا دوباره تلاش کنید',
+  WrongCode = 'کد اشتباه است',
+  LoginAgain = 'لطفا دوباره وارد شوید',
+  LoginIsRequired = ' ورود الزامی است',
 }
 export enum PublicMessage {
   SentOtp = 'کد ارسال شد',
+  LoggedIn = ' ورود موفقیت آمیز',
 }
