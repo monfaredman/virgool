@@ -1,5 +1,4 @@
-export enum EntityName {
+export enum UserMethod {
   User = 'user',
   Profile = 'profile',
-  Otp = 'Otp',
 }

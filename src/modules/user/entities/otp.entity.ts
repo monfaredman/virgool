@@ -1,0 +1,16 @@
+import { Column, Entity, OneToOne } from 'typeorm';
+import { UserEntity } from './user.entity';
+import { EntityName } from 'src/common/enums/entity.enum';
+import { BaseEntity } from 'src/common/abstracts/base.entity';
+
+@Entity(EntityName.Otp)
+export class OTPEntity extends BaseEntity {
+  @Column()
+  code: number;
+  @Column()
+  expiresIn: Date;
+  @Column()
+  userId: number;
+  @OneToOne(() => UserEntity, (user) => user.otp, { onDelete: 'CASCADE' })
+  user: UserEntity;
+}
