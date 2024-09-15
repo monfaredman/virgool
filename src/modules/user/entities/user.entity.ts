@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { OTPEntity } from './otp.entity';
+import { ProfileEntity } from './profile.entity';
 @Entity(EntityName.User)
 export class UserEntity extends BaseEntity {
   @Column({ unique: true, nullable: true })
@@ -21,6 +22,8 @@ export class UserEntity extends BaseEntity {
   password: string;
   @Column({ nullable: true })
   otpId: number;
+  @Column({ nullable: true })
+  profileId: number;
   @OneToOne(() => OTPEntity, (otp) => otp.user, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'otpId' })
   otp: OTPEntity;
@@ -28,4 +31,8 @@ export class UserEntity extends BaseEntity {
   created_at: Date;
   @UpdateDateColumn()
   updated_at: Date;
+  @OneToOne(() => ProfileEntity, (profile) => profile.user, {
+    onDelete: 'CASCADE',
+  })
+  profile: ProfileEntity;
 }

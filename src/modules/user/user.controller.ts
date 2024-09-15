@@ -1,14 +1,16 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Body, Put } from '@nestjs/common';
 import { UserService } from './user.service';
-import { ApiTags } from '@nestjs/swagger';
-import { AuthDto } from '../auth/dto/auth.dto';
+import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ProfileDto } from './dto/profile.dto';
+import { SwaggerConsumes } from 'src/common/enums/swagger-consumes.enum.';
 @Controller('user')
 @ApiTags('User')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post('/user-existance')
-  userExistence(@Body() authDto: AuthDto) {
-    return this.userService.userExistence(authDto);
+  @Put('/profile')
+  @ApiConsumes(SwaggerConsumes.MultipartData)
+  changeProfile(@Body() profileDto: ProfileDto) {
+    return this.userService.changeProfile(profileDto);
   }
 }
