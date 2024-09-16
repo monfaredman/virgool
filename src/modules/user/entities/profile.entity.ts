@@ -16,6 +16,8 @@ export class ProfileEntity extends BaseEntity {
   @Column({ nullable: true })
   image_profile: string;
   @Column({ nullable: true })
+  bg_image: string;
+  @Column({ nullable: true })
   @IsEnum(Gender)
   gender: string;
   @Column({ nullable: true })

@@ -32,7 +32,12 @@ export enum NotFoundMessage {
 export enum UnauthorizedMessage {}
 export enum ForbiddenMessage {}
 export enum InternalServerErrorMessage {}
-export enum ValidationMessage {}
+export enum ValidationMessage {
+  UserNotValid = 'کاربر معتبر نیست',
+  UserNotRegistered = 'کاربر ثبت نشده است',
+  UserNotAuthenticated = 'کاربر تأیید نشده است',
+  InvalidImageFormat = 'فرمت تصویر نامعتبر است',
+}
 export enum AuthMessage {
   UserExistence = 'کاربر قبلا ثبت شده است',
   UserNotFound = 'کاربر پیدا نشد',
