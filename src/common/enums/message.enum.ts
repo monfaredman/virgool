@@ -1,6 +1,7 @@
 export enum BadRequestMessage {
   InValidLogin = 'اطلاعات وارد شده برای ورود نامعتبر است',
   InValidRegister = 'اطلاعات وارد شده برای ثبت نام نامعتبر است',
+  SomethingWrong = 'خطایی رخ داده است',
 }
 export enum NotFoundMessage {
   UserNotFound = 'کاربر پیدا نشد',
@@ -37,6 +38,8 @@ export enum ValidationMessage {
   UserNotRegistered = 'کاربر ثبت نشده است',
   UserNotAuthenticated = 'کاربر تأیید نشده است',
   InvalidImageFormat = 'فرمت تصویر نامعتبر است',
+  InvalidEmailFormat = 'فرمت ایمیل نامعتبر است',
+  InvalidPhoneFormat = 'فرمت شماره موبایل نامعتبر است',
 }
 export enum AuthMessage {
   UserExistence = 'کاربر قبلا ثبت شده است',
@@ -54,6 +57,7 @@ export enum AuthMessage {
   UserNotValidation = 'کاربر اعتبارسنجی نشده است',
   UserNotAuthentication = 'کاربر تأیید هویت نشده است',
   ExpiresCode = ' کد منقضی شده است',
+  NotExpiresCode = 'کد منقضی نشده است',
   TryAgain = 'لطفا دوباره تلاش کنید',
   WrongCode = 'کد اشتباه است',
   LoginAgain = 'لطفا دوباره وارد شوید',
@@ -76,4 +80,7 @@ export enum ConflictMessage {
   UserNotUnique = 'کاربر منحصر به فرد نیست',
   UserNotConflict = 'کاربر تداخل دارد',
   CategoryTitleExistence = 'عنوان دسته بندی قبلا ثبت شده است',
+  EmailExistence = 'ایمیل قبلا ثبت شده است',
+  PhoneExistence = 'شماره موبایل قبلا ثبت شده است',
+  UsernameExistence = 'نام کاربری قبلا ثبت شده است',
 }

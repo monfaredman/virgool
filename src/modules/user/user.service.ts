@@ -1,4 +1,11 @@
-import { Inject, Injectable, Scope } from '@nestjs/common';
+import { AuthService } from './../auth/auth.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Scope,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
 import { ProfileEntity } from './entities/profile.entity';
@@ -9,16 +16,30 @@ import { Repository } from 'typeorm';
 import { isDate } from 'class-validator';
 import { Gender } from './enums/gender.enum';
 import { ProfileImage } from './types/files';
-import { PublicMessage } from 'src/common/enums/message.enum';
+import {
+  AuthMessage,
+  ConflictMessage,
+  NotFoundMessage,
+  PublicMessage,
+  BadRequestMessage,
+} from 'src/common/enums/message.enum';
+import { TokenService } from '../auth/tokens.service';
+import { OTPEntity } from './entities/otp.entity';
+import { CookieKeys } from 'src/common/enums/cookie.enum';
+import { AuthMethod } from '../auth/enums/method.enum';
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
+    @InjectRepository(OTPEntity)
+    private otpRepository: Repository<OTPEntity>,
     @InjectRepository(ProfileEntity)
     private profileRepository: Repository<ProfileEntity>,
     @Inject(REQUEST) private request: Request,
+    private authService: AuthService,
+    private tokenService: TokenService,
   ) {}
 
   async changeProfile(files: ProfileImage, profileDto: ProfileDto) {
@@ -84,5 +105,107 @@ export class UserService {
       where: { id },
       relations: ['profile'],
     });
+  }
+  async changeEmail(email: string) {
+    const { id } = this.request.user;
+    const user = await this.userRepository.findOneBy({ email });
+    if (user && user.id !== id) {
+      throw new ConflictException(ConflictMessage.EmailExistence);
+    } else if (user && user.id === id) {
+      return {
+        message: PublicMessage.Updated,
+      };
+    }
+    await this.userRepository.update({ id }, { new_email: email });
+    const otp = await this.authService.createOtpForUser(id, AuthMethod.Email);
+    const token = this.tokenService.createEmailToken({ email });
+    return {
+      code: otp.code,
+      token,
+    };
+  }
+
+  async verifyEmail(code: string) {
+    const { id: userId, new_email } = this.request.user;
+    const token = this.request.cookies?.[CookieKeys.EmailOTP];
+    if (!token) throw new BadRequestException(AuthMessage.ExpiresCode);
+    const { email } = this.tokenService.verifyEmailToken(token);
+    if (email !== new_email)
+      throw new BadRequestException(BadRequestMessage.SomethingWrong);
+    const otp = await this.checkOtp(userId, code);
+    if (otp.otp.method !== AuthMethod.Email)
+      throw new BadRequestException(BadRequestMessage.SomethingWrong);
+    await this.userRepository.update(
+      { id: userId },
+      { email, verify_email: true, new_email: null },
+    );
+    return {
+      message: PublicMessage.Updated,
+    };
+  }
+
+  async changePhone(phone: string) {
+    const { id } = this.request.user;
+    const user = await this.userRepository.findOneBy({ phone });
+    if (user && user.id !== id) {
+      throw new ConflictException(ConflictMessage.PhoneExistence);
+    } else if (user && user.id === id) {
+      return {
+        message: PublicMessage.Updated,
+      };
+    }
+    await this.userRepository.update({ id }, { new_phone: phone });
+    const otp = await this.authService.createOtpForUser(id, AuthMethod.Phone);
+    const token = this.tokenService.createPhoneToken({ phone });
+    return {
+      code: otp.code,
+      token,
+    };
+  }
+
+  async verifyPhone(code: string) {
+    const { id: userId, new_phone } = this.request.user;
+    const token = this.request.cookies?.[CookieKeys.PhoneOTP];
+    if (!token) throw new BadRequestException(AuthMessage.ExpiresCode);
+    const { phone } = this.tokenService.verifyPhoneToken(token);
+    if (phone !== new_phone)
+      throw new BadRequestException(BadRequestMessage.SomethingWrong);
+    const otp = await this.checkOtp(userId, code);
+    if (otp.otp.method !== AuthMethod.Phone)
+      throw new BadRequestException(BadRequestMessage.SomethingWrong);
+    await this.userRepository.update(
+      { id: userId },
+      { phone, verify_phone: true, new_phone: null },
+    );
+    return {
+      message: PublicMessage.Updated,
+    };
+  }
+
+  async checkOtp(userId: number, code: string) {
+    const otp = await this.otpRepository.findOneBy({ userId });
+    if (!otp) throw new BadRequestException(NotFoundMessage.OtpNotFound);
+    const now = new Date();
+    if (otp.expiresIn < now)
+      throw new BadRequestException(AuthMessage.ExpiresCode);
+    if (otp.code !== +code)
+      throw new BadRequestException(AuthMessage.WrongCode);
+    return { otp };
+  }
+
+  async changeUsername(username: string) {
+    const { id } = this.request.user;
+    const user = await this.userRepository.findOneBy({ username });
+    if (user && user.id !== id) {
+      throw new ConflictException(ConflictMessage.UsernameExistence);
+    } else if (user && user.id === id) {
+      return {
+        message: PublicMessage.Updated,
+      };
+    }
+    await this.userRepository.update({ id }, { username });
+    return {
+      message: PublicMessage.Updated,
+    };
   }
 }
