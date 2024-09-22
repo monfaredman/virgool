@@ -1,34 +1,20 @@
-import { Controller, Get, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { BlogService } from './blog.service';
-// import { CreateBlogDto } from './dto/create-blog.dto';
-// import { UpdateBlogDto } from './dto/update-blog.dto';
+import { CreateBlogDto } from './dto/blog.dto';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { SwaggerConsumes } from 'src/common/enums/swagger-consumes.enum.';
 
 @Controller('blog')
+@ApiTags('Blog')
+@ApiBearerAuth('Authorization')
+@UseGuards(AuthGuard)
 export class BlogController {
   constructor(private readonly blogService: BlogService) {}
 
-  // @Post()
-  // create(@Body() createBlogDto: CreateBlogDto) {
-  //   return this.blogService.create(createBlogDto);
-  // }
-
-  @Get()
-  findAll() {
-    return this.blogService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.blogService.findOne(+id);
-  }
-
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateBlogDto: UpdateBlogDto) {
-  //   return this.blogService.update(+id, updateBlogDto);
-  // }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.blogService.remove(+id);
+  @Post('/')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  create(@Body() blogDto: CreateBlogDto) {
+    return this.blogService.create(blogDto);
   }
 }

@@ -1,11 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, Length } from 'class-validator';
+import { IsNotEmpty, IsNumber, Length } from 'class-validator';
 
 export class CreateBlogDto {
   @ApiProperty()
   @IsNotEmpty()
   @Length(10, 150)
   title: string;
+  @ApiPropertyOptional()
+  slug: string;
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  time_for_study: number;
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
   image: string;
   @ApiProperty()
