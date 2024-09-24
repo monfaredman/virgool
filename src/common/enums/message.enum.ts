@@ -2,6 +2,7 @@ export enum BadRequestMessage {
   InValidLogin = 'اطلاعات وارد شده برای ورود نامعتبر است',
   InValidRegister = 'اطلاعات وارد شده برای ثبت نام نامعتبر است',
   SomethingWrong = 'خطایی رخ داده است',
+  InvalidCategory = 'دسته بندی نامعتبر است',
 }
 export enum NotFoundMessage {
   UserNotFound = 'کاربر پیدا نشد',

@@ -1,16 +1,20 @@
 import { BaseEntity } from 'src/common/abstracts/base.entity';
 import { EntityName } from 'src/common/enums/entity.enum';
-import { Column, Entity } from 'typeorm';
-@Entity(EntityName.Blog)
+import { Column, Entity, ManyToOne } from 'typeorm';
+import { BlogEntity } from './blog.entity';
+import { CategoryEntity } from 'src/modules/category/entities/category.entity';
+@Entity(EntityName.BlogCategory)
 export class BlogCategoryEntity extends BaseEntity {
   @Column()
-  title: string;
+  blogId: number;
   @Column()
-  description: string;
-  @Column()
-  content: string;
-  @Column({ nullable: true })
-  image: string;
-  @Column()
-  authorId: number;
+  categoryId: number;
+  @ManyToOne(() => BlogEntity, (blog) => blog.categories, {
+    onDelete: 'CASCADE',
+  })
+  blog: BlogEntity;
+  @ManyToOne(() => CategoryEntity, (category) => category.blog_category, {
+    onDelete: 'CASCADE',
+  })
+  category: CategoryEntity;
 }

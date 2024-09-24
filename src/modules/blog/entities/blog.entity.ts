@@ -13,6 +13,7 @@ import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { BlogLikesEntity } from './like.entity';
 import { BlogBookmarkEntity } from './bookmark.entity';
 import { BlogCommentEntity } from './comment.entity';
+import { BlogCategoryEntity } from './blog-category.entity';
 @Entity(EntityName.Blog)
 export class BlogEntity extends BaseEntity {
   @Column()
@@ -23,7 +24,7 @@ export class BlogEntity extends BaseEntity {
   content: string;
   @Column({ nullable: true })
   image: string;
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: false })
   slug: string;
   @Column()
   time_for_study: number;
@@ -45,6 +46,8 @@ export class BlogEntity extends BaseEntity {
     onDelete: 'CASCADE',
   })
   comments: BlogCommentEntity[];
+  @OneToMany(() => BlogCategoryEntity, (category) => category.blog)
+  categories: BlogCategoryEntity[];
   @CreateDateColumn()
   created_at: Date;
   @UpdateDateColumn()
