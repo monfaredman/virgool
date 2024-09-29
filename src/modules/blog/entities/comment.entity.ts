@@ -20,7 +20,7 @@ export class BlogCommentEntity extends BaseEntity {
   blogId: number;
   @Column()
   userId: number;
-  @Column()
+  @Column({ nullable: true })
   parentId: number;
   @CreateDateColumn()
   created_at: Date;

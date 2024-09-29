@@ -3,6 +3,8 @@ export enum BadRequestMessage {
   InValidRegister = 'اطلاعات وارد شده برای ثبت نام نامعتبر است',
   SomethingWrong = 'خطایی رخ داده است',
   InvalidCategory = 'دسته بندی نامعتبر است',
+  AreadyAccepted = 'قبلا پذیرفته شده است',
+  AreadyRejected = 'قبلا رد شده است',
 }
 export enum NotFoundMessage {
   UserNotFound = 'کاربر پیدا نشد',
@@ -30,6 +32,7 @@ export enum NotFoundMessage {
   VerificationCodeNotMatch = 'کد تاییدیه مطابقت ندارد',
   VerificationTokenNotValid = 'توکن تاییدیه معتبر نیست',
   VerificationCodeNotValid = 'کد تاییدیه معتبر نیست',
+  BlogNotFound = 'مقاله پیدا نشد',
 }
 export enum UnauthorizedMessage {}
 export enum ForbiddenMessage {}
@@ -75,6 +78,14 @@ export enum PublicMessage {
   Verified = 'با موفقیت تایید شد',
   Registered = 'با موفقیت ثبت شد',
   Authenticated = 'با موفقیت تأیید شد',
+  Like = 'با موفقیت لایک شد',
+  Dislike = 'با موفقیت دیسلایک شد',
+  Bookmarked = 'با موفقیت نشان شد',
+  UnBookmarked = 'با موفقیت نشان حذف شد',
+  ContainSpam = 'حاوی اسپم است',
+  Commented = 'با موفقیت نظر داده شد',
+  Accepted = 'با موفقیت پذیرفته شد',
+  Rejected = 'با موفقیت رد شد',
 }
 export enum ConflictMessage {
   UserExistence = 'کاربر قبلا ثبت شده است',
