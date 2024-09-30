@@ -1,6 +1,11 @@
-import { BadRequestException, Inject, Injectable, Scope } from '@nestjs/common';
-import { BlogEntity } from '../entities/blog.entity';
-import { Repository } from 'typeorm';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  Scope,
+} from '@nestjs/common';
+import { IsNull, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
@@ -22,17 +27,17 @@ import {
 @Injectable({ scope: Scope.REQUEST })
 export class BlogCommentService {
   constructor(
-    @InjectRepository(BlogEntity)
-    private blogRepository: Repository<BlogEntity>,
     @InjectRepository(BlogCommentEntity)
     private blogCommentRepository: Repository<BlogCommentEntity>,
     @Inject(REQUEST) private request: Request,
+    @Inject(forwardRef(() => BlogService))
     private blogService: BlogService,
   ) {}
 
   async create(createCommentDto: CreateCommentDto) {
     const { id: userId } = this.request.user;
     const { text, parentId, blogId } = createCommentDto;
+    await this.blogService.checkExistBlogById(blogId);
     let parent = null;
     if (parentId && !isNaN(parentId)) {
       parent = await this.blogCommentRepository.findOneBy({
@@ -107,6 +112,57 @@ export class BlogCommentService {
     await this.blogCommentRepository.save(comment);
     return {
       message: PublicMessage.Rejected,
+    };
+  }
+  async findCommentOfBlog(blogId: number, paginationDto: PaginationDto) {
+    const { limit, page, skip } = paginationSolver(paginationDto);
+    const [comments, count] = await this.blogCommentRepository.findAndCount({
+      where: { parentId: IsNull(), blogId },
+      relations: {
+        user: { profile: true },
+        children: {
+          user: { profile: true },
+          children: { user: { profile: true } },
+        },
+      },
+      select: {
+        user: {
+          username: true,
+          profile: {
+            nick_name: true,
+          },
+        },
+        children: {
+          text: true,
+          created_at: true,
+          parentId: true,
+          user: {
+            username: true,
+            profile: {
+              nick_name: true,
+            },
+          },
+          children: {
+            text: true,
+            created_at: true,
+            parentId: true,
+            user: {
+              username: true,
+              profile: {
+                nick_name: true,
+              },
+            },
+          },
+        },
+      },
+      take: limit,
+      skip,
+      order: { id: 'DESC' },
+    });
+
+    return {
+      pagination: paginationGenerator(page, limit, count),
+      data: comments,
     };
   }
 }
