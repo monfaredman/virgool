@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AuthType } from '../enums/type.enum';
-import { IsEnum, IsString, Length } from 'class-validator';
+import { IsEnum, IsNumberString, IsString, Length } from 'class-validator';
 import { AuthMethod } from '../enums/method.enum';
 
 export class AuthDto {
@@ -19,4 +19,9 @@ export class CheckOtpDto {
   @IsString()
   @Length(5, 5)
   code: string;
+}
+export class UserBlockDto {
+  @ApiProperty()
+  @IsNumberString()
+  userId: number;
 }

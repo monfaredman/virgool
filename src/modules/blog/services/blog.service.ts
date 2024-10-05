@@ -13,8 +13,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from '../dto/blog.dto';
 import { createSlug, randomId } from 'src/common/utils/functions.util';
 import { BlogStatus } from '../enums/status.enum';
-import { REQUEST } from '@nestjs/core';
-import { Request } from 'express';
 import {
   BadRequestMessage,
   NotFoundMessage,
@@ -31,6 +29,8 @@ import { BlogCategoryEntity } from '../entities/blog-category.entity';
 import { EntityName } from 'src/common/enums/entity.enum';
 import { BlogLikesEntity } from '../entities/like.entity';
 import { BlogBookmarkEntity } from '../entities/bookmark.entity';
+import { REQUEST } from '@nestjs/core';
+import { Request } from 'express';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -51,7 +51,7 @@ export class BlogService {
 
   async create(blogDto: CreateBlogDto) {
     const user = this.request.user;
-
+    console.log('user', user);
     let {
       // eslint-disable-next-line prefer-const
       title,
@@ -281,6 +281,8 @@ export class BlogService {
   }
   async findOneBySlug(slug: string, paginationDto: PaginationDto) {
     const userId = this.request?.user?.id;
+    const user = this.request.user;
+
     const blog = await this.blogRepository
       .createQueryBuilder(EntityName.Blog)
       .where({ slug })
@@ -292,18 +294,24 @@ export class BlogService {
       blog.id,
       paginationDto,
     );
-    const isLiked = await this.blogLikeRepository.findOneBy({
-      userId,
-      blogId: blog.id,
-    });
-    const isBookmarked = await this.blogBookmarkRepository.findOneBy({
-      userId,
-      blogId: blog.id,
-    });
+    let isLiked = false;
+    let isBookmarked = false;
+    console.log('userId', user);
+    if (userId && !isNaN(userId) && userId > 0) {
+      isLiked = !!(await this.blogLikeRepository.findOneBy({
+        userId,
+        blogId: blog.id,
+      }));
+      isBookmarked = !!(await this.blogBookmarkRepository.findOneBy({
+        userId,
+        blogId: blog.id,
+      }));
+    }
+
     return {
       ...blog,
-      isLiked: !!isLiked,
-      isBookmarked: !!isBookmarked,
+      isLiked: isLiked,
+      isBookmarked: isBookmarked,
       commentData,
     };
   }

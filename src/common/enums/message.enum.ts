@@ -33,9 +33,12 @@ export enum NotFoundMessage {
   VerificationTokenNotValid = 'توکن تاییدیه معتبر نیست',
   VerificationCodeNotValid = 'کد تاییدیه معتبر نیست',
   BlogNotFound = 'مقاله پیدا نشد',
+  ImageNotFound = 'تصویر پیدا نشد',
 }
 export enum UnauthorizedMessage {}
-export enum ForbiddenMessage {}
+export enum ForbiddenMessage {
+  RoleForbidden = 'نقش ممنوع است',
+}
 export enum InternalServerErrorMessage {}
 export enum ValidationMessage {
   UserNotValid = 'کاربر معتبر نیست',
@@ -66,6 +69,7 @@ export enum AuthMessage {
   WrongCode = 'کد اشتباه است',
   LoginAgain = 'لطفا دوباره وارد شوید',
   LoginIsRequired = ' ورود الزامی است',
+  Blocked = 'کاربر مسدود شده است',
 }
 export enum PublicMessage {
   SentOtp = 'با موفقیت کد ارسال شد',
@@ -86,6 +90,10 @@ export enum PublicMessage {
   Commented = 'با موفقیت نظر داده شد',
   Accepted = 'با موفقیت پذیرفته شد',
   Rejected = 'با موفقیت رد شد',
+  Followed = 'با موفقیت دنبال شد',
+  UnFollowed = 'با موفقیت دنبال نشد',
+  Blocked = 'با موفقیت مسدود شد',
+  UnBlocked = 'با موفقیت مسدود نشد',
 }
 export enum ConflictMessage {
   UserExistence = 'کاربر قبلا ثبت شده است',

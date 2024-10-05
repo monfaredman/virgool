@@ -15,6 +15,9 @@ import { BlogEntity } from 'src/modules/blog/entities/blog.entity';
 import { BlogLikesEntity } from 'src/modules/blog/entities/like.entity';
 import { BlogBookmarkEntity } from 'src/modules/blog/entities/bookmark.entity';
 import { BlogCommentEntity } from 'src/modules/blog/entities/comment.entity';
+import { ImageEntity } from 'src/modules/image/entities/image.entity';
+import { Roles } from 'src/common/enums/role.enum';
+import { FollowEntity } from './follow.entity';
 @Entity(EntityName.User)
 export class UserEntity extends BaseEntity {
   @Column({ unique: true, nullable: true })
@@ -23,8 +26,12 @@ export class UserEntity extends BaseEntity {
   phone: string;
   @Column({ unique: true, nullable: true })
   email: string;
+  @Column({ default: Roles.User })
+  role: string;
   @Column({ nullable: true })
   new_phone: string;
+  @Column({ nullable: true })
+  status: string;
   @Column({ nullable: true })
   new_email: string;
   @Column({ nullable: true, default: false })
@@ -63,4 +70,12 @@ export class UserEntity extends BaseEntity {
   })
   @JoinColumn()
   profile: ProfileEntity;
+  @OneToMany(() => ImageEntity, (image) => image.user, {
+    onDelete: 'CASCADE',
+  })
+  images: ImageEntity[];
+  @OneToMany(() => FollowEntity, (follow) => follow.follower)
+  following: FollowEntity[];
+  @OneToMany(() => FollowEntity, (follow) => follow.following)
+  followers: FollowEntity[];
 }

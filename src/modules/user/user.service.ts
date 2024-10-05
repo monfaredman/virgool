@@ -4,6 +4,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  NotFoundException,
   Scope,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,6 +28,15 @@ import { TokenService } from '../auth/tokens.service';
 import { OTPEntity } from './entities/otp.entity';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { AuthMethod } from '../auth/enums/method.enum';
+import { FollowEntity } from './entities/follow.entity';
+import { EntityName } from 'src/common/enums/entity.enum';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import {
+  paginationGenerator,
+  paginationSolver,
+} from 'src/common/utils/pagination.util';
+import { UserBlockDto } from '../auth/dto/auth.dto';
+import { UserStatus } from './enums/status.enum';
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserService {
@@ -40,6 +50,8 @@ export class UserService {
     @Inject(REQUEST) private request: Request,
     private authService: AuthService,
     private tokenService: TokenService,
+    @InjectRepository(FollowEntity)
+    private followRepository: Repository<FollowEntity>,
   ) {}
 
   async changeProfile(files: ProfileImage, profileDto: ProfileDto) {
@@ -99,12 +111,20 @@ export class UserService {
     };
   }
 
+  async find() {
+    return this.userRepository.find({
+      where: {},
+    });
+  }
   async getProfile() {
     const { id } = this.request.user;
-    return this.userRepository.findOne({
-      where: { id },
-      relations: ['profile'],
-    });
+    return this.userRepository
+      .createQueryBuilder(EntityName.User)
+      .where({ id })
+      .leftJoinAndSelect('user.profile', 'profile')
+      .loadRelationCountAndMap('user.followers', 'user.followers')
+      .loadRelationCountAndMap('user.following', 'user.following')
+      .getOne();
   }
   async changeEmail(email: string) {
     const { id } = this.request.user;
@@ -206,6 +226,108 @@ export class UserService {
     await this.userRepository.update({ id }, { username });
     return {
       message: PublicMessage.Updated,
+    };
+  }
+  async followToggle(followingId: number) {
+    const { id: userId } = this.request.user;
+    const following = await this.userRepository.findOneBy({ id: followingId });
+    if (!following) throw new NotFoundException(NotFoundMessage.UserNotFound);
+
+    const isFollowed = await this.followRepository.findOneBy({
+      followingId,
+      followerId: userId,
+    });
+    let message = PublicMessage.Followed;
+    if (isFollowed) {
+      message = PublicMessage.UnFollowed;
+      await this.followRepository.remove(isFollowed);
+    } else {
+      await this.followRepository.insert({ followingId, followerId: userId });
+    }
+    return {
+      message,
+    };
+  }
+  async followers(paginationDto: PaginationDto) {
+    const { id: userId } = this.request.user;
+    const { limit, page, skip } = paginationSolver(paginationDto);
+    const [followers, count] = await this.followRepository.findAndCount({
+      where: { followingId: userId },
+      relations: {
+        follower: {
+          profile: true,
+        },
+      },
+      select: {
+        id: true,
+        follower: {
+          id: true,
+          username: true,
+          profile: {
+            id: true,
+            nick_name: true,
+            image_profile: true,
+            bg_image: true,
+            bio: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+    });
+    return {
+      pagination: paginationGenerator(count, limit, page),
+      followers,
+    };
+  }
+  async following(paginationDto: PaginationDto) {
+    const { id: userId } = this.request.user;
+    const { limit, page, skip } = paginationSolver(paginationDto);
+    const [following, count] = await this.followRepository.findAndCount({
+      where: { followerId: userId },
+      relations: {
+        following: {
+          profile: true,
+        },
+      },
+      select: {
+        id: true,
+        following: {
+          id: true,
+          username: true,
+          profile: {
+            id: true,
+            nick_name: true,
+            image_profile: true,
+            bg_image: true,
+            bio: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+    });
+    return {
+      pagination: paginationGenerator(count, limit, page),
+      following,
+    };
+  }
+  async blockToggle(blockDto: UserBlockDto) {
+    const { userId } = blockDto;
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new NotFoundException(NotFoundMessage.UserNotFound);
+    let message = PublicMessage.Blocked;
+    if (user.status === UserStatus.Block) {
+      await this.userRepository.update({ id: userId }, { status: null });
+    } else {
+      message = PublicMessage.UnBlocked;
+      await this.userRepository.update(
+        { id: userId },
+        { status: UserStatus.Block },
+      );
+    }
+    return {
+      message,
     };
   }
 }
