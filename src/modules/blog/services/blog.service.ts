@@ -31,6 +31,7 @@ import { BlogLikesEntity } from '../entities/like.entity';
 import { BlogBookmarkEntity } from '../entities/bookmark.entity';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -50,8 +51,7 @@ export class BlogService {
   ) {}
 
   async create(blogDto: CreateBlogDto) {
-    const user = this.request.user;
-    console.log('user', user);
+    const user = this.request.user as UserEntity;
     let {
       // eslint-disable-next-line prefer-const
       title,
@@ -114,7 +114,7 @@ export class BlogService {
   }
 
   myBlogs() {
-    const { id } = this.request.user;
+    const { id } = this.request.user as UserEntity;
 
     return this.blogRepository.find({
       where: { authorId: id },
@@ -241,7 +241,7 @@ export class BlogService {
   }
 
   async likeToggle(blogId: number) {
-    const { id: userId } = this.request.user;
+    const { id: userId } = this.request.user as UserEntity;
     await this.checkExistBlogById(blogId);
     const isLiked = await this.blogLikeRepository.findOneBy({ userId, blogId });
     let message = PublicMessage.Like;
@@ -259,7 +259,7 @@ export class BlogService {
     };
   }
   async bookmarkToggle(blogId: number) {
-    const { id: userId } = this.request.user;
+    const { id: userId } = this.request.user as UserEntity;
     await this.checkExistBlogById(blogId);
     const isBookmarked = await this.blogBookmarkRepository.findOneBy({
       userId,
@@ -280,7 +280,7 @@ export class BlogService {
     };
   }
   async findOneBySlug(slug: string, paginationDto: PaginationDto) {
-    const userId = this.request?.user?.id;
+    const userId = (this.request.user as UserEntity).id;
     const user = this.request.user;
 
     const blog = await this.blogRepository

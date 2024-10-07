@@ -7,6 +7,7 @@ import { MulterFile } from 'src/common/utils/multer.util';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
 import { NotFoundMessage, PublicMessage } from 'src/common/enums/message.enum';
+import { UserEntity } from '../user/entities/user.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ImageService {
@@ -16,7 +17,7 @@ export class ImageService {
     @Inject(REQUEST) private req: Request,
   ) {}
   async create(imageDto: ImageDto, image: MulterFile) {
-    const userId = this.req.user.id;
+    const userId = (this.req.user as UserEntity).id;
     const { alt, name } = imageDto;
     const location = image?.path?.slice(7);
     await this.imageRepository.insert({
@@ -31,7 +32,7 @@ export class ImageService {
   }
 
   findAll() {
-    const userId = this.req.user.id;
+    const userId = (this.req.user as UserEntity).id;
     return this.imageRepository.find({
       where: { userId },
       order: { id: 'DESC' },
@@ -39,7 +40,7 @@ export class ImageService {
   }
 
   async findOne(id: number) {
-    const userId = this.req.user.id;
+    const userId = (this.req.user as UserEntity).id;
     const image = await this.imageRepository.findOne({
       where: { userId, id },
       order: { id: 'DESC' },

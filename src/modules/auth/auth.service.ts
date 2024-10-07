@@ -24,10 +24,11 @@ import { randomInt } from 'crypto';
 import { TokenService } from './tokens.service';
 import { Response, Request } from 'express';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
-import { AuthResponse } from './types/response';
+import { AuthResponse, GoogleUser } from './types/response';
 import { REQUEST } from '@nestjs/core';
 import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
 import { KavenegarService } from '../http/kavenegar.service';
+import { randomId } from 'src/common/utils/functions.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -35,7 +36,7 @@ export class AuthService {
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
     @InjectRepository(ProfileEntity)
-    private profileEntity: Repository<ProfileEntity>,
+    private profileRepository: Repository<ProfileEntity>,
     @InjectRepository(OTPEntity)
     private otpRepository: Repository<OTPEntity>,
     private tokenService: TokenService,
@@ -83,17 +84,21 @@ export class AuthService {
   }
   async register(method: AuthMethod, username: string) {
     const validUsername = this.usernameValidator(method, username);
+    console.log(validUsername);
     let user: UserEntity = await this.checkExistUser(method, validUsername);
+    console.log(user);
     if (user) throw new ConflictException(AuthMessage.UserExistence);
-    if (method === AuthMethod.Username) {
-      throw new BadRequestException(BadRequestMessage.InValidRegister);
-    }
+    // if (method === AuthMethod.Username) {
+    //   throw new BadRequestException(BadRequestMessage.InValidRegister);
+    // }
     user = this.userRepository.create({ [method]: username });
     user = await this.userRepository.save(user);
+    console.log(user);
     user.username = `m_${user.id}`;
     user = await this.userRepository.save(user);
     const otp = await this.createOtpForUser(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
+    console.log(token);
 
     return {
       code: otp.code,
@@ -198,5 +203,32 @@ export class AuthService {
     const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) throw new UnauthorizedException(AuthMessage.LoginAgain);
     return user;
+  }
+
+  async googleAuth(userData: GoogleUser) {
+    const { email, firstName, lastName } = userData;
+    let token: string;
+    let user = await this.userRepository.findOneBy({ email });
+    console.log('user', user);
+    if (user) {
+      console.log('user');
+      token = this.tokenService.createOtpToken({ userId: user?.id });
+    } else {
+      user = await this.userRepository.create({
+        email,
+        verify_email: true,
+        username: email.split('@')['0'] + randomId(),
+      });
+      user = await this.userRepository.save(user);
+      let profile = this.profileRepository.create({
+        userId: user?.id,
+        nick_name: `${firstName} ${lastName}`,
+      });
+      profile = await this.profileRepository.save(profile);
+      user.profileId = profile?.id;
+      await this.userRepository.save(user);
+      token = this.tokenService.createAccessToken({ userId: user?.id });
+    }
+    return { message: PublicMessage.LoggedIn, token };
   }
 }

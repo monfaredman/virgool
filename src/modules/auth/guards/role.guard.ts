@@ -10,6 +10,7 @@ import { Observable } from 'rxjs';
 import { ROLE_KEY } from 'src/common/decorators/role.decorator';
 import { ForbiddenMessage } from 'src/common/enums/message.enum';
 import { Roles } from 'src/common/enums/role.enum';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -23,7 +24,7 @@ export class RoleGuard implements CanActivate {
     ]);
     if (!requiredRoles || requiredRoles.length == 0) return true;
     const request: Request = context.switchToHttp().getRequest<Request>();
-    const user = request.user;
+    const user = request.user as UserEntity;
     const userRole = user.role ?? Roles.User;
     if (user.role === Roles.Admin) return true;
     if (requiredRoles.includes(userRole as Roles)) return true;

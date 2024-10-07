@@ -12,6 +12,7 @@ import { AuthService } from '../auth.service';
 import { Reflector } from '@nestjs/core';
 import { SKIP_AUTH } from 'src/common/decorators/skip-auth.decorator';
 import { UserStatus } from 'src/modules/user/enums/status.enum';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -30,7 +31,7 @@ export class AuthGuard implements CanActivate {
     const request: Request = httpContext.getRequest<Request>();
     const token = this.extractToken(request);
     request.user = await this.authService.validateAccessToken(token);
-    if (request?.user?.status === UserStatus.Block) {
+    if ((request.user as UserEntity)?.status === UserStatus.Block) {
       throw new ForbiddenException(AuthMessage.Blocked);
     }
     return true;
