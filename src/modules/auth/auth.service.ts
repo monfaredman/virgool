@@ -84,21 +84,52 @@ export class AuthService {
   }
   async register(method: AuthMethod, username: string) {
     const validUsername = this.usernameValidator(method, username);
-    console.log(validUsername);
-    let user: UserEntity = await this.checkExistUser(method, validUsername);
-    console.log(user);
-    if (user) throw new ConflictException(AuthMessage.UserExistence);
-    // if (method === AuthMethod.Username) {
-    //   throw new BadRequestException(BadRequestMessage.InValidRegister);
-    // }
-    user = this.userRepository.create({ [method]: username });
+
+    // Check if any user exists with this email, phone, or username
+    let existingUser = await this.userRepository
+      .createQueryBuilder('user')
+      .where(
+        'user.email = :email OR user.phone = :phone OR user.username = :username',
+        {
+          email: method === AuthMethod.Email ? validUsername : null,
+          phone: method === AuthMethod.Phone ? validUsername : null,
+          username: method === AuthMethod.Username ? validUsername : null,
+        },
+      )
+      .getOne();
+
+    // Throw a conflict error if user already exists
+    if (existingUser) throw new ConflictException(AuthMessage.UserExistence);
+
+    // Continue with user registration
+    if (method === AuthMethod.Username) {
+      throw new BadRequestException(BadRequestMessage.InValidRegister);
+    }
+
+    let user = this.userRepository.create({ [method]: username });
+
     user = await this.userRepository.save(user);
-    console.log(user);
-    user.username = `m_${user.id}`;
-    user = await this.userRepository.save(user);
+
+    // Ensure unique username
+    let usernameExists = true;
+    let attempt = 0;
+    while (usernameExists) {
+      try {
+        user.username = `m_${user.id}_${attempt}`; // Attempt to create a unique username
+        user = await this.userRepository.save(user); // Save the user with the new username
+        usernameExists = false; // If no error, username is unique
+      } catch (e) {
+        if (e.code === '23505') {
+          // Catch duplicate key violation
+          attempt++; // Increment attempt number if username already exists
+        } else {
+          throw e; // Re-throw any other errors
+        }
+      }
+    }
+
     const otp = await this.createOtpForUser(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
-    console.log(token);
 
     return {
       code: otp.code,
@@ -209,9 +240,7 @@ export class AuthService {
     const { email, firstName, lastName } = userData;
     let token: string;
     let user = await this.userRepository.findOneBy({ email });
-    console.log('user', user);
     if (user) {
-      console.log('user');
       token = this.tokenService.createOtpToken({ userId: user?.id });
     } else {
       user = await this.userRepository.create({
@@ -219,14 +248,19 @@ export class AuthService {
         verify_email: true,
         username: email.split('@')['0'] + randomId(),
       });
+
       user = await this.userRepository.save(user);
+
       let profile = this.profileRepository.create({
         userId: user?.id,
         nick_name: `${firstName} ${lastName}`,
       });
+
       profile = await this.profileRepository.save(profile);
+
       user.profileId = profile?.id;
       await this.userRepository.save(user);
+
       token = this.tokenService.createAccessToken({ userId: user?.id });
     }
     return { message: PublicMessage.LoggedIn, token };

@@ -8,7 +8,7 @@ import {
   Scope,
 } from '@nestjs/common';
 import { BlogEntity } from '../entities/blog.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from '../dto/blog.dto';
 import { createSlug, randomId } from 'src/common/utils/functions.util';
@@ -31,7 +31,6 @@ import { BlogLikesEntity } from '../entities/like.entity';
 import { BlogBookmarkEntity } from '../entities/bookmark.entity';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
-import { UserEntity } from 'src/modules/user/entities/user.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -48,10 +47,11 @@ export class BlogService {
     private categoryService: CategoryService,
     @Inject(forwardRef(() => BlogCommentService))
     private blogCommentService: BlogCommentService,
+    private dataSource: DataSource,
   ) {}
 
   async create(blogDto: CreateBlogDto) {
-    const user = this.request.user as UserEntity;
+    const user = this.request.user;
     let {
       // eslint-disable-next-line prefer-const
       title,
@@ -114,7 +114,7 @@ export class BlogService {
   }
 
   myBlogs() {
-    const { id } = this.request.user as UserEntity;
+    const { id } = this.request.user;
 
     return this.blogRepository.find({
       where: { authorId: id },
@@ -241,7 +241,7 @@ export class BlogService {
   }
 
   async likeToggle(blogId: number) {
-    const { id: userId } = this.request.user as UserEntity;
+    const { id: userId } = this.request.user;
     await this.checkExistBlogById(blogId);
     const isLiked = await this.blogLikeRepository.findOneBy({ userId, blogId });
     let message = PublicMessage.Like;
@@ -259,7 +259,7 @@ export class BlogService {
     };
   }
   async bookmarkToggle(blogId: number) {
-    const { id: userId } = this.request.user as UserEntity;
+    const { id: userId } = this.request.user;
     await this.checkExistBlogById(blogId);
     const isBookmarked = await this.blogBookmarkRepository.findOneBy({
       userId,
@@ -280,9 +280,7 @@ export class BlogService {
     };
   }
   async findOneBySlug(slug: string, paginationDto: PaginationDto) {
-    const userId = (this.request.user as UserEntity).id;
-    const user = this.request.user;
-
+    const userId = this.request.user.id;
     const blog = await this.blogRepository
       .createQueryBuilder(EntityName.Blog)
       .where({ slug })
@@ -296,7 +294,6 @@ export class BlogService {
     );
     let isLiked = false;
     let isBookmarked = false;
-    console.log('userId', user);
     if (userId && !isNaN(userId) && userId > 0) {
       isLiked = !!(await this.blogLikeRepository.findOneBy({
         userId,
@@ -307,12 +304,29 @@ export class BlogService {
         blogId: blog.id,
       }));
     }
-
+    const qureyRunner = await this.dataSource.createQueryRunner();
+    await qureyRunner.connect();
+    const suggestBlogs = await qureyRunner.query(
+      `WITH suggested_blogs AS (
+      SELECT
+      blog.*,
+      (
+      SELECT COUNT(*) FROM blog_likes 
+      WHERE blog_likes."blogId" = blog.id 
+     ) AS likes
+      FROM blog
+      ORDER BY RANDOM()
+      LIMIT 3
+      )
+      SELECT * FROM suggested_blogs 
+      `,
+    );
     return {
       ...blog,
       isLiked: isLiked,
       isBookmarked: isBookmarked,
       commentData,
+      suggestBlogs,
     };
   }
 }

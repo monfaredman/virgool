@@ -23,7 +23,6 @@ import {
   paginationGenerator,
   paginationSolver,
 } from 'src/common/utils/pagination.util';
-import { UserEntity } from 'src/modules/user/entities/user.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogCommentService {
@@ -36,7 +35,7 @@ export class BlogCommentService {
   ) {}
 
   async create(createCommentDto: CreateCommentDto) {
-    const { id: userId } = this.request.user as UserEntity;
+    const { id: userId } = this.request.user;
     const { text, parentId, blogId } = createCommentDto;
     await this.blogService.checkExistBlogById(blogId);
     let parent = null;

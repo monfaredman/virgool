@@ -63,7 +63,7 @@ export class UserService {
       const [image] = files?.bg_image;
       profileDto.bg_image = image?.['path']?.slice(7);
     }
-    const { id: userId, profileId } = this.request.user as UserEntity;
+    const { id: userId, profileId } = this.request.user;
     let profile = await this.profileRepository.findOneBy({ userId });
     const {
       bio,
@@ -117,7 +117,7 @@ export class UserService {
     });
   }
   async getProfile() {
-    const { id } = this.request.user as UserEntity;
+    const { id } = this.request.user;
     return this.userRepository
       .createQueryBuilder(EntityName.User)
       .where({ id })
@@ -127,7 +127,7 @@ export class UserService {
       .getOne();
   }
   async changeEmail(email: string) {
-    const { id } = this.request.user as UserEntity;
+    const { id } = this.request.user;
     const user = await this.userRepository.findOneBy({ email });
     if (user && user.id !== id) {
       throw new ConflictException(ConflictMessage.EmailExistence);
@@ -146,7 +146,7 @@ export class UserService {
   }
 
   async verifyEmail(code: string) {
-    const { id: userId, new_email } = this.request.user as UserEntity;
+    const { id: userId, new_email } = this.request.user;
     const token = this.request.cookies?.[CookieKeys.EmailOTP];
     if (!token) throw new BadRequestException(AuthMessage.ExpiresCode);
     const { email } = this.tokenService.verifyEmailToken(token);
@@ -165,7 +165,7 @@ export class UserService {
   }
 
   async changePhone(phone: string) {
-    const { id } = this.request.user as UserEntity;
+    const { id } = this.request.user;
     const user = await this.userRepository.findOneBy({ phone });
     if (user && user.id !== id) {
       throw new ConflictException(ConflictMessage.PhoneExistence);
@@ -184,7 +184,7 @@ export class UserService {
   }
 
   async verifyPhone(code: string) {
-    const { id: userId, new_phone } = this.request.user as UserEntity;
+    const { id: userId, new_phone } = this.request.user;
     const token = this.request.cookies?.[CookieKeys.PhoneOTP];
     if (!token) throw new BadRequestException(AuthMessage.ExpiresCode);
     const { phone } = this.tokenService.verifyPhoneToken(token);
@@ -214,7 +214,7 @@ export class UserService {
   }
 
   async changeUsername(username: string) {
-    const { id } = this.request.user as UserEntity;
+    const { id } = this.request.user;
     const user = await this.userRepository.findOneBy({ username });
     if (user && user.id !== id) {
       throw new ConflictException(ConflictMessage.UsernameExistence);
@@ -229,7 +229,7 @@ export class UserService {
     };
   }
   async followToggle(followingId: number) {
-    const { id: userId } = this.request.user as UserEntity;
+    const { id: userId } = this.request.user;
     const following = await this.userRepository.findOneBy({ id: followingId });
     if (!following) throw new NotFoundException(NotFoundMessage.UserNotFound);
 
@@ -249,7 +249,7 @@ export class UserService {
     };
   }
   async followers(paginationDto: PaginationDto) {
-    const { id: userId } = this.request.user as UserEntity;
+    const { id: userId } = this.request.user;
     const { limit, page, skip } = paginationSolver(paginationDto);
     const [followers, count] = await this.followRepository.findAndCount({
       where: { followingId: userId },
@@ -281,7 +281,7 @@ export class UserService {
     };
   }
   async following(paginationDto: PaginationDto) {
-    const { id: userId } = this.request.user as UserEntity;
+    const { id: userId } = this.request.user;
     const { limit, page, skip } = paginationSolver(paginationDto);
     const [following, count] = await this.followRepository.findAndCount({
       where: { followerId: userId },

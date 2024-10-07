@@ -13,7 +13,7 @@ export function TypeOrmConfig(): TypeOrmModuleOptions {
       'dist/**/**/**/*.entity{.ts,.js}',
       'dist/**/**/*.entity{.ts,.js}',
     ],
-    synchronize: true,
+    synchronize: false,
     autoLoadEntities: false,
   };
 }
