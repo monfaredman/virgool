@@ -14,7 +14,6 @@ export class KavenegarService {
       token: code,
       template: SmsTemplate.Verify,
     });
-    console.log(params);
     const { SEND_SMS_URL } = process.env;
     const result = await lastValueFrom(
       this.httpService
@@ -27,7 +26,6 @@ export class KavenegarService {
           }),
         ),
     );
-    console.log(result);
     return result;
   }
 }
