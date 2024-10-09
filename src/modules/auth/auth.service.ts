@@ -86,7 +86,7 @@ export class AuthService {
     const validUsername = this.usernameValidator(method, username);
 
     // Check if any user exists with this email, phone, or username
-    let existingUser = await this.userRepository
+    const existingUser = await this.userRepository
       .createQueryBuilder('user')
       .where(
         'user.email = :email OR user.phone = :phone OR user.username = :username',
@@ -110,23 +110,9 @@ export class AuthService {
 
     user = await this.userRepository.save(user);
 
-    // Ensure unique username
-    let usernameExists = true;
-    let attempt = 0;
-    while (usernameExists) {
-      try {
-        user.username = `m_${user.id}_${attempt}`; // Attempt to create a unique username
-        user = await this.userRepository.save(user); // Save the user with the new username
-        usernameExists = false; // If no error, username is unique
-      } catch (e) {
-        if (e.code === '23505') {
-          // Catch duplicate key violation
-          attempt++; // Increment attempt number if username already exists
-        } else {
-          throw e; // Re-throw any other errors
-        }
-      }
-    }
+    // Assign auto-generated username based on userId
+    user.username = `m_${user.id}`;
+    user = await this.userRepository.save(user);
 
     const otp = await this.createOtpForUser(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
